@@ -164,5 +164,8 @@ elif prompt:
         st.warning("ZEMA AI could not connect to the AI service. Please try again.")
     except APIStatusError as error:
         st.error(f"The AI service returned an error (status {error.status_code}).")
-    except Exception:
-        st.error("Something unexpected happened. Please try again or start a new chat.")
+    except Exception as error:
+        st.error(
+            "ZEMA AI encountered an unexpected error. "
+            f"Diagnostic code: `{type(error).__name__}`. Please try again."
+        )
