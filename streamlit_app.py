@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone
 
 import streamlit as st
-from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
+from google import genai
 
 
 st.set_page_config(page_title="ZEMA AI Assistant", page_icon="✨", layout="wide")
@@ -52,10 +52,13 @@ LANGUAGE_GUIDANCE = {
 
 def get_api_key() -> str | None:
     """Read a server-side key without asking visitors to expose credentials."""
+    environment_key = os.getenv("GEMINI_API_KEY")
+    if environment_key:
+        return environment_key
     try:
-        return st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+        return st.secrets.get("GEMINI_API_KEY")
     except (FileNotFoundError, KeyError):
-        return os.getenv("OPENAI_API_KEY")
+        return None
 
 
 def build_instructions(mode: str, language: str) -> str:
@@ -75,21 +78,23 @@ def transcript() -> str:
     return "\n".join(lines)
 
 
-def generate_response(client: OpenAI, model: str, instructions: str) -> str:
-    history = [
-        {"role": message["role"], "content": message["content"]}
-        for message in st.session_state.messages
-    ]
-    response = client.responses.create(
-        model=model,
-        instructions=instructions,
-        input=history,
-    )
+def generate_response(client: genai.Client, model: str, instructions: str, prompt: str) -> str:
+    request = {
+        "model": model,
+        "input": prompt,
+        "system_instruction": instructions,
+    }
+    if st.session_state.interaction_id:
+        request["previous_interaction_id"] = st.session_state.interaction_id
+    response = client.interactions.create(**request)
+    st.session_state.interaction_id = response.id
     return response.output_text
 
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "interaction_id" not in st.session_state:
+    st.session_state.interaction_id = None
 
 with st.sidebar:
     st.markdown("## ✨ ZEMA AI")
@@ -97,7 +102,7 @@ with st.sidebar:
     st.markdown("---")
     mode = st.selectbox("Assistant mode", list(ASSISTANT_MODES))
     language = st.selectbox("Response language", list(LANGUAGE_GUIDANCE))
-    model = st.selectbox("AI model", ["gpt-5-mini", "gpt-4.1-mini"])
+    model = st.selectbox("AI model", ["gemini-2.5-flash", "gemini-2.5-flash-lite"])
     st.markdown("---")
     st.caption("QUICK START")
     quick_prompts = {
@@ -113,6 +118,7 @@ with st.sidebar:
     left, right = st.columns(2)
     if left.button("New chat", use_container_width=True):
         st.session_state.messages = []
+        st.session_state.interaction_id = None
         st.rerun()
     right.download_button(
         "Download",
@@ -147,7 +153,7 @@ prompt = selected_prompt or st.chat_input("Message ZEMA AI…", disabled=not api
 
 if not api_key:
     st.error(
-        "The assistant is not connected yet. The app owner must add OPENAI_API_KEY "
+        "The assistant is not connected yet. The app owner must add GEMINI_API_KEY "
         "in Streamlit App settings → Secrets."
     )
 elif prompt:
@@ -155,21 +161,17 @@ elif prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    client = OpenAI(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     try:
         with st.chat_message("assistant"):
             with st.spinner("ZEMA AI is thinking…"):
-                response = generate_response(client, model, build_instructions(mode, language))
+                response = generate_response(
+                    client, model, build_instructions(mode, language), prompt
+                )
             st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
-    except RateLimitError:
-        st.warning("The AI service has reached its current usage limit. Please try again shortly.")
-    except APIConnectionError:
-        st.warning("ZEMA AI could not connect to the AI service. Please try again.")
-    except APIStatusError as error:
-        st.error(f"The AI service returned an error (status {error.status_code}).")
     except Exception as error:
         st.error(
-            "ZEMA AI encountered an unexpected error. "
+            "Gemini could not complete the request. "
             f"Diagnostic code: `{type(error).__name__}`. Please try again."
         )
