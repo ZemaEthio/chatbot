@@ -1,19 +1,32 @@
-# 💬 Chatbot template
+# ZEMA AI Assistant
 
-A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
+A branded, multilingual Streamlit chatbot for business guidance, SQL Server expertise, ZEMA product questions, and general assistance.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chatbot-template.streamlit.app/)
+## Features
 
-### How to run it on your own machine
+- Secure server-side OpenAI key; visitors never enter or see the key
+- OpenAI Responses API with streamed answers
+- Business, SQL Server, ZEMA product, and general assistant modes
+- English, Amharic, and automatic language selection
+- Quick-start prompts, new-chat control, and transcript download
+- Responsive ZEMA-branded interface and user-friendly API error handling
 
-1. Install the requirements
+## Run locally
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+1. Install dependencies: `pip install -r requirements.txt`
+2. Add `OPENAI_API_KEY = "your-key"` to `.streamlit/secrets.toml`.
+3. Start the app: `streamlit run streamlit_app.py`
 
-2. Run the app
+## Deploy on Streamlit Community Cloud
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+Deploy `streamlit_app.py` from this repository. In **App settings → Secrets**, add:
+
+```toml
+OPENAI_API_KEY = "your-key"
+```
+
+Never commit `.streamlit/secrets.toml`; it is excluded by `.gitignore`.
+
+## Configuration
+
+The default model is `gpt-5-mini`. Users can select `gpt-4.1-mini` in the sidebar when needed.
