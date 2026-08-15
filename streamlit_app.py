@@ -50,6 +50,42 @@ LANGUAGE_GUIDANCE = {
     "Amharic": "Reply in natural Amharic unless technical terms are clearer in English.",
 }
 
+PRODUCT_CONTEXTS = {
+    "general": {
+        "name": "ZEMA AI",
+        "subtitle": "Your intelligent business companion",
+        "mode": "Business Assistant",
+        "guidance": "Help across ZEMA products and general business operations.",
+        "prompts": {
+            "Create a business plan": "Create a practical one-page business plan for my idea.",
+            "Analyze SQL performance": "Help me diagnose a SQL Server performance problem step by step.",
+            "Write customer outreach": "Write a concise, professional customer outreach message.",
+        },
+    },
+    "crm": {
+        "name": "ZEMA CRM Assistant",
+        "subtitle": "Your AI sales and customer operations partner",
+        "mode": "Business Assistant",
+        "guidance": "Focus on CRM workflows: lead qualification, pipeline health, follow-ups, sales tasks, customer communication, and retention. Give practical next actions and never invent customer data.",
+        "prompts": {
+            "Qualify a lead": "Help me qualify a lead and recommend the next best action.",
+            "Draft a follow-up": "Draft a concise, professional follow-up message for a sales lead.",
+            "Review my pipeline": "Help me review pipeline risks and prioritize follow-ups.",
+        },
+    },
+    "digital": {
+        "name": "ZEMA Digital Assistant",
+        "subtitle": "Your AI marketing and campaign partner",
+        "mode": "Business Assistant",
+        "guidance": "Focus on digital marketing workflows: campaign strategy, content creation, client approvals, social media, email, local marketing, lead generation, and reporting. Never invent performance results or client facts.",
+        "prompts": {
+            "Create campaign ideas": "Create three practical campaign ideas for a local service business.",
+            "Draft social content": "Draft a social media post with a clear call to action.",
+            "Prepare a client report": "Help me summarize marketing activity and business outcomes for a client.",
+        },
+    },
+}
+
 GEMINI_MODELS = (
     "gemini-3.5-flash-lite",
     "gemini-3.1-flash-lite",
@@ -68,10 +104,10 @@ def get_api_key() -> str | None:
         return None
 
 
-def build_instructions(mode: str, language: str) -> str:
+def build_instructions(mode: str, language: str, product_guidance: str) -> str:
     return (
         "You are ZEMA AI, a helpful, accurate, and friendly assistant. "
-        f"{ASSISTANT_MODES[mode]} {LANGUAGE_GUIDANCE[language]} "
+        f"{ASSISTANT_MODES[mode]} {LANGUAGE_GUIDANCE[language]} {product_guidance} "
         "Lead with the answer, use concise structure, and ask a clarifying question only when essential. "
         "Do not claim to have completed external actions you did not perform."
     )
@@ -114,25 +150,29 @@ def generate_response(
     raise last_not_found or RuntimeError("No Gemini model is available")
 
 
+product_key = st.query_params.get("product", "general").lower()
+product = PRODUCT_CONTEXTS.get(product_key, PRODUCT_CONTEXTS["general"])
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 api_key = get_api_key()
 
 with st.sidebar:
-    st.markdown("## ✨ ZEMA AI")
-    st.caption("Your intelligent business companion")
+    st.markdown(f"## ✨ {product['name']}")
+    st.caption(product["subtitle"])
     st.markdown("---")
-    mode = st.selectbox("Assistant mode", list(ASSISTANT_MODES))
+    mode_names = list(ASSISTANT_MODES)
+    mode = st.selectbox(
+        "Assistant mode",
+        mode_names,
+        index=mode_names.index(product["mode"]),
+    )
     language = st.selectbox("Response language", list(LANGUAGE_GUIDANCE))
     model = st.selectbox("AI model", GEMINI_MODELS[:2])
     st.markdown("---")
     st.caption("QUICK START")
-    quick_prompts = {
-        "Create a business plan": "Create a practical one-page business plan for my idea.",
-        "Analyze SQL performance": "Help me diagnose a SQL Server performance problem step by step.",
-        "Write customer outreach": "Write a concise, professional customer outreach message.",
-    }
+    quick_prompts = product["prompts"]
     selected_prompt = None
     for label, prompt_text in quick_prompts.items():
         if st.button(label, use_container_width=True):
@@ -154,11 +194,11 @@ with st.sidebar:
     st.markdown(f'<p class="status-pill">{connection_status}</p>', unsafe_allow_html=True)
 
 st.markdown(
-    """
+    f"""
     <section class="zema-hero">
-      <div class="zema-badge">ZEMA AI</div>
+      <div class="zema-badge">{product['name']}</div>
       <h1>How can I help you today?</h1>
-      <p>Business strategy, SQL Server expertise, customer communication, and everyday answers—together in one assistant.</p>
+      <p>{product['subtitle']}</p>
     </section>
     """,
     unsafe_allow_html=True,
@@ -188,7 +228,7 @@ elif prompt:
         with st.chat_message("assistant"):
             with st.spinner("ZEMA AI is thinking…"):
                 response, used_model = generate_response(
-                    client, model, build_instructions(mode, language)
+                    client, model, build_instructions(mode, language, product["guidance"])
                 )
             st.markdown(response)
             if used_model != model:
