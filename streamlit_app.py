@@ -97,6 +97,11 @@ MODULE_GUIDANCE = {
     "support": "Specialize in support triage, answer drafts, escalation, and service recovery.",
     "front-desk": "Specialize in inquiry qualification, intake questions, routing, and appointment preparation.",
     "automate": "Specialize in safe workflow design, triggers, conditions, approvals, and audit steps. Never claim an automation ran.",
+    "booking": "Specialize in appointment workflows, availability questions, reminders, and scheduling preparation. Never claim an appointment was booked.",
+    "quotes-invoices": "Specialize in estimate and invoice drafts, payment terms, and professional payment follow-ups. Never invent prices or claim a payment occurred.",
+    "field-service": "Specialize in job scheduling, technician coordination, service notes, and customer status updates.",
+    "scheduler": "Specialize in employee shift planning, coverage gaps, workload balance, and scheduling recommendations.",
+    "inventory": "Specialize in stock summaries, reorder risks, availability, and inventory workflow recommendations. Never invent quantities.",
 }
 
 GEMINI_MODELS = (
