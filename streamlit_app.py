@@ -50,6 +50,12 @@ LANGUAGE_GUIDANCE = {
     "Amharic": "Reply in natural Amharic unless technical terms are clearer in English.",
 }
 
+GEMINI_MODELS = (
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite",
+)
+
 
 def get_api_key() -> str | None:
     """Read a server-side key without asking visitors to expose credentials."""
@@ -79,7 +85,9 @@ def transcript() -> str:
     return "\n".join(lines)
 
 
-def generate_response(client: genai.Client, model: str, instructions: str) -> str:
+def generate_response(
+    client: genai.Client, model: str, instructions: str
+) -> tuple[str, str]:
     history = [
         types.Content(
             role="model" if message["role"] == "assistant" else "user",
@@ -87,16 +95,29 @@ def generate_response(client: genai.Client, model: str, instructions: str) -> st
         )
         for message in st.session_state.messages
     ]
-    response = client.models.generate_content(
-        model=model,
-        contents=history,
-        config=types.GenerateContentConfig(system_instruction=instructions),
-    )
-    return response.text
+    candidates = (model, *(candidate for candidate in GEMINI_MODELS if candidate != model))
+    last_not_found = None
+    for candidate in candidates:
+        try:
+            response = client.models.generate_content(
+                model=candidate,
+                contents=history,
+                config=types.GenerateContentConfig(system_instruction=instructions),
+            )
+            if not response.text:
+                raise RuntimeError("Gemini returned an empty response")
+            return response.text, candidate
+        except errors.ClientError as error:
+            if error.code != 404:
+                raise
+            last_not_found = error
+    raise last_not_found or RuntimeError("No Gemini model is available")
 
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+api_key = get_api_key()
 
 with st.sidebar:
     st.markdown("## ✨ ZEMA AI")
@@ -104,9 +125,7 @@ with st.sidebar:
     st.markdown("---")
     mode = st.selectbox("Assistant mode", list(ASSISTANT_MODES))
     language = st.selectbox("Response language", list(LANGUAGE_GUIDANCE))
-    model = st.selectbox(
-        "AI model", ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
-    )
+    model = st.selectbox("AI model", GEMINI_MODELS[:2])
     st.markdown("---")
     st.caption("QUICK START")
     quick_prompts = {
@@ -131,7 +150,8 @@ with st.sidebar:
         use_container_width=True,
         disabled=not st.session_state.messages,
     )
-    st.markdown('<p class="status-pill">● Secure connection ready</p>', unsafe_allow_html=True)
+    connection_status = "● Gemini connected" if api_key else "● Setup required"
+    st.markdown(f'<p class="status-pill">{connection_status}</p>', unsafe_allow_html=True)
 
 st.markdown(
     """
@@ -151,7 +171,6 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-api_key = get_api_key()
 prompt = selected_prompt or st.chat_input("Message ZEMA AI…", disabled=not api_key)
 
 if not api_key:
@@ -168,10 +187,12 @@ elif prompt:
     try:
         with st.chat_message("assistant"):
             with st.spinner("ZEMA AI is thinking…"):
-                response = generate_response(
+                response, used_model = generate_response(
                     client, model, build_instructions(mode, language)
                 )
             st.markdown(response)
+            if used_model != model:
+                st.caption(f"Answered with fallback model: {used_model}")
         st.session_state.messages.append({"role": "assistant", "content": response})
     except errors.APIError as error:
         explanations = {
