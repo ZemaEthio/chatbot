@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
 
 st.set_page_config(page_title="ZEMA AI Assistant", page_icon="✨", layout="wide")
@@ -171,6 +171,18 @@ elif prompt:
                 )
             st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
+    except errors.APIError as error:
+        explanations = {
+            400: "Google rejected the request configuration.",
+            401: "The Gemini API key is invalid.",
+            403: "This API key or region does not have access to the selected model.",
+            404: "The selected Gemini model is not available for this API key.",
+            429: "The Gemini free-tier request limit has been reached.",
+        }
+        explanation = explanations.get(error.code, "Google Gemini returned an API error.")
+        st.error(
+            f"{explanation} Error `{error.code} {error.status or 'UNKNOWN'}`."
+        )
     except Exception as error:
         st.error(
             "Gemini could not complete the request. "
