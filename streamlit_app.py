@@ -86,6 +86,19 @@ PRODUCT_CONTEXTS = {
     },
 }
 
+MODULE_GUIDANCE = {
+    "followup": "Specialize in personalized follow-up drafts and next-best actions.",
+    "lead-scoring": "Specialize in transparent lead scoring, qualification factors, and prioritization.",
+    "pipeline": "Specialize in pipeline risk, stalled deals, forecasting, and revenue priorities.",
+    "marketing": "Specialize in CRM audience campaigns, offers, and customer outreach strategy.",
+    "content": "Specialize in customer-facing content, proposals, templates, and onboarding materials.",
+    "insights": "Specialize in business summaries, trends, missed opportunities, and decision support.",
+    "reputation": "Specialize in review requests, feedback analysis, and professional response drafts.",
+    "support": "Specialize in support triage, answer drafts, escalation, and service recovery.",
+    "front-desk": "Specialize in inquiry qualification, intake questions, routing, and appointment preparation.",
+    "automate": "Specialize in safe workflow design, triggers, conditions, approvals, and audit steps. Never claim an automation ran.",
+}
+
 GEMINI_MODELS = (
     "gemini-3.5-flash-lite",
     "gemini-3.1-flash-lite",
@@ -162,6 +175,8 @@ def generate_response(
 product_key = st.query_params.get("product", "general").lower()
 product = PRODUCT_CONTEXTS.get(product_key, PRODUCT_CONTEXTS["general"])
 product_context = st.query_params.get("context", "").strip()[:1000]
+module_key = st.query_params.get("module", "").lower()
+module_guidance = MODULE_GUIDANCE.get(module_key, "")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -241,7 +256,10 @@ elif prompt:
                     client,
                     model,
                     build_instructions(
-                        mode, language, product["guidance"], product_context
+                        mode,
+                        language,
+                        f"{product['guidance']} {module_guidance}".strip(),
+                        product_context,
                     ),
                 )
             st.markdown(response)
