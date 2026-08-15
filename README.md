@@ -29,4 +29,4 @@ Never commit `.streamlit/secrets.toml`; it is excluded by `.gitignore`.
 
 ## Configuration
 
-The default model is `gemini-2.5-flash`. Users can select `gemini-2.5-flash-lite` in the sidebar when needed.
+The default model is `gemini-3.5-flash-lite`. Users can select `gemini-3.1-flash-lite` in the sidebar when needed. Both have eligible free-tier usage.
