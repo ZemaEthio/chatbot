@@ -5,7 +5,7 @@ A branded, multilingual Streamlit chatbot for business guidance, SQL Server expe
 ## Features
 
 - Secure server-side OpenAI key; visitors never enter or see the key
-- OpenAI Responses API with streamed answers
+- OpenAI Responses API with conversation-aware answers
 - Business, SQL Server, ZEMA product, and general assistant modes
 - English, Amharic, and automatic language selection
 - Quick-start prompts, new-chat control, and transcript download
