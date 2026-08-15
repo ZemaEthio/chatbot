@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import streamlit as st
 from google import genai
+from google.genai import types
 
 
 st.set_page_config(page_title="ZEMA AI Assistant", page_icon="✨", layout="wide")
@@ -78,23 +79,24 @@ def transcript() -> str:
     return "\n".join(lines)
 
 
-def generate_response(client: genai.Client, model: str, instructions: str, prompt: str) -> str:
-    request = {
-        "model": model,
-        "input": prompt,
-        "system_instruction": instructions,
-    }
-    if st.session_state.interaction_id:
-        request["previous_interaction_id"] = st.session_state.interaction_id
-    response = client.interactions.create(**request)
-    st.session_state.interaction_id = response.id
-    return response.output_text
+def generate_response(client: genai.Client, model: str, instructions: str) -> str:
+    history = [
+        types.Content(
+            role="model" if message["role"] == "assistant" else "user",
+            parts=[types.Part(text=message["content"])],
+        )
+        for message in st.session_state.messages
+    ]
+    response = client.models.generate_content(
+        model=model,
+        contents=history,
+        config=types.GenerateContentConfig(system_instruction=instructions),
+    )
+    return response.text
 
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "interaction_id" not in st.session_state:
-    st.session_state.interaction_id = None
 
 with st.sidebar:
     st.markdown("## ✨ ZEMA AI")
@@ -118,7 +120,6 @@ with st.sidebar:
     left, right = st.columns(2)
     if left.button("New chat", use_container_width=True):
         st.session_state.messages = []
-        st.session_state.interaction_id = None
         st.rerun()
     right.download_button(
         "Download",
@@ -166,7 +167,7 @@ elif prompt:
         with st.chat_message("assistant"):
             with st.spinner("ZEMA AI is thinking…"):
                 response = generate_response(
-                    client, model, build_instructions(mode, language), prompt
+                    client, model, build_instructions(mode, language)
                 )
             st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
