@@ -104,7 +104,9 @@ with st.sidebar:
     st.markdown("---")
     mode = st.selectbox("Assistant mode", list(ASSISTANT_MODES))
     language = st.selectbox("Response language", list(LANGUAGE_GUIDANCE))
-    model = st.selectbox("AI model", ["gemini-2.5-flash", "gemini-2.5-flash-lite"])
+    model = st.selectbox(
+        "AI model", ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
+    )
     st.markdown("---")
     st.caption("QUICK START")
     quick_prompts = {
