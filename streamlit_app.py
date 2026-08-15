@@ -75,15 +75,17 @@ def transcript() -> str:
     return "\n".join(lines)
 
 
-def stream_response(client: OpenAI, model: str, instructions: str):
+def generate_response(client: OpenAI, model: str, instructions: str) -> str:
     history = [
         {"role": message["role"], "content": message["content"]}
         for message in st.session_state.messages
     ]
-    with client.responses.stream(model=model, instructions=instructions, input=history) as stream:
-        for event in stream:
-            if event.type == "response.output_text.delta":
-                yield event.delta
+    response = client.responses.create(
+        model=model,
+        instructions=instructions,
+        input=history,
+    )
+    return response.output_text
 
 
 if "messages" not in st.session_state:
@@ -156,7 +158,9 @@ elif prompt:
     client = OpenAI(api_key=api_key)
     try:
         with st.chat_message("assistant"):
-            response = st.write_stream(stream_response(client, model, build_instructions(mode, language)))
+            with st.spinner("ZEMA AI is thinking…"):
+                response = generate_response(client, model, build_instructions(mode, language))
+            st.markdown(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
     except RateLimitError:
         st.warning("The AI service has reached its current usage limit. Please try again shortly.")
