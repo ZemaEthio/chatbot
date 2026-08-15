@@ -104,10 +104,19 @@ def get_api_key() -> str | None:
         return None
 
 
-def build_instructions(mode: str, language: str, product_guidance: str) -> str:
+def build_instructions(
+    mode: str, language: str, product_guidance: str, product_context: str
+) -> str:
+    context_guidance = (
+        f" Current DEV product context: {product_context}. "
+        "Treat these values as read-only context and do not invent missing records."
+        if product_context
+        else ""
+    )
     return (
         "You are ZEMA AI, a helpful, accurate, and friendly assistant. "
-        f"{ASSISTANT_MODES[mode]} {LANGUAGE_GUIDANCE[language]} {product_guidance} "
+        f"{ASSISTANT_MODES[mode]} {LANGUAGE_GUIDANCE[language]} {product_guidance}"
+        f"{context_guidance} "
         "Lead with the answer, use concise structure, and ask a clarifying question only when essential. "
         "Do not claim to have completed external actions you did not perform."
     )
@@ -152,6 +161,7 @@ def generate_response(
 
 product_key = st.query_params.get("product", "general").lower()
 product = PRODUCT_CONTEXTS.get(product_key, PRODUCT_CONTEXTS["general"])
+product_context = st.query_params.get("context", "").strip()[:1000]
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -228,7 +238,11 @@ elif prompt:
         with st.chat_message("assistant"):
             with st.spinner("ZEMA AI is thinking…"):
                 response, used_model = generate_response(
-                    client, model, build_instructions(mode, language, product["guidance"])
+                    client,
+                    model,
+                    build_instructions(
+                        mode, language, product["guidance"], product_context
+                    ),
                 )
             st.markdown(response)
             if used_model != model:
