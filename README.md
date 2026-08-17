@@ -1,75 +1,88 @@
 # ZEMA AI Assistant
 
-A branded, multilingual Streamlit chatbot for business guidance, SQL Server expertise, ZEMA product questions, and general assistance.
+A branded, multilingual Streamlit assistant for ZEMA product guidance and general business assistance.
 
 ## Current status
 
-- **Platform:** Streamlit Community Cloud
-- **Repository:** `ZemaEthio/chatbot`
-- **AI provider:** Google Gemini Developer API
-- **Default model:** `gemini-3.5-flash-lite`
-- **Alternative model:** `gemini-3.1-flash-lite`
-- **API plan:** Gemini free tier (subject to Google's rate limits and availability)
-- **OpenAI dependency:** Removed; OpenAI billing and `OPENAI_API_KEY` are no longer required
-- **Deployment state:** Code is published to `main`; the deployed app requires `GEMINI_API_KEY` in Streamlit Secrets
+**Stage: deployed assistant / integration in progress.**
+
+- Platform: Streamlit Community Cloud
+- Repository: `ZemaEthio/chatbot`
+- Current AI provider: Google Gemini Developer API
+- Deployment branch: `main`
+- Required secret: `GEMINI_API_KEY` in Streamlit Secrets
+- Product direction: become an assistant layer that can be embedded into or connected with ZEMA CRM, ZEMA Digital, and other ZEMA products
+
+The current public deployment should not receive confidential customer, employee, financial, or production database data unless the provider plan and data-handling controls have been explicitly approved for that use.
 
 ## Features
 
-- Secure server-side Gemini key; visitors never enter or see the key
-- Google Gemini API with conversation-aware answers
-- Business, SQL Server, ZEMA product, and general assistant modes
+- Server-side provider credential handling
+- Conversation-aware assistance
+- ZEMA product guidance
 - English, Amharic, and automatic language selection
-- Quick-start prompts, new-chat control, and transcript download
-- Responsive ZEMA-branded interface and user-friendly API error handling
+- Quick-start prompts and transcript download
+- Responsive ZEMA-branded interface
+- User-friendly provider error handling
+
+## Architecture direction
+
+```text
+ZEMA product UI
+      |
+      v
+ZEMA Assistant service
+      |
+      +--> approved AI provider
+      +--> product knowledge/context
+      +--> controlled product APIs/tools
+```
+
+The assistant should not receive privileged database or integration credentials. Product actions should occur through authenticated, permission-checked APIs.
 
 ## Run locally
 
-1. Install dependencies:
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. Create `.streamlit/secrets.toml` and add:
-
-   ```toml
-   GEMINI_API_KEY = "your-complete-key"
-   ```
-
-3. Start the app:
-
-   ```bash
-   streamlit run streamlit_app.py
-   ```
+Create `.streamlit/secrets.toml` locally with the required provider key. Never commit that file.
 
 ## Deploy on Streamlit Community Cloud
 
-Deploy `streamlit_app.py` from this repository. In **App settings → Secrets**, add:
+Deploy `streamlit_app.py` from this repository. Store `GEMINI_API_KEY` under the app's **Settings → Secrets**, save, reboot, and run a controlled test.
 
-```toml
-GEMINI_API_KEY = "your-complete-key"
-```
+## DEV vs PROD rules
 
-Save the secret, reboot the app, and test with `Hello ZEMA AI`.
-
-Never commit `.streamlit/secrets.toml`, paste API keys into issues, or include keys in screenshots. The local secret file is excluded by `.gitignore`.
-
-## Configuration
-
-The default model is `gemini-3.5-flash-lite`. Users can select `gemini-3.1-flash-lite` in the sidebar when needed. Both have eligible free-tier usage.
-
-Free-tier requests may be used by Google to improve its products. Do not send confidential customer, employee, financial, or production database information through the free-tier deployment.
+- Keep provider secrets server-side.
+- Do not place API keys in issues, screenshots, transcripts, or README files.
+- Use non-sensitive product/test context while developing tool integrations.
+- Require authenticated product APIs before the assistant can read or change customer data.
+- Add audit records for assistant-triggered business actions.
+- Add human confirmation for high-impact outbound or destructive actions.
 
 ## Troubleshooting
 
 | App message | Meaning | Action |
 |---|---|---|
-| `The assistant is not connected yet` | `GEMINI_API_KEY` is missing or saved in a different Streamlit app | Add the exact variable name under the chatbot app's **Settings → Secrets**, save, and reboot |
-| `401 UNAUTHENTICATED` | The Gemini key is invalid | Create a new Google AI Studio key and replace the Streamlit secret |
-| `403 PERMISSION_DENIED` | The project or region cannot access the selected model | Verify Gemini API access for the Google project |
-| `404 NOT_FOUND` | The selected model is unavailable | Reboot to load the current model list, then select `gemini-3.5-flash-lite` |
-| `429 RESOURCE_EXHAUSTED` | The free-tier rate limit was reached | Wait for the quota window to reset or enable paid Gemini API usage |
+| Assistant not connected | Provider key is missing or assigned to another app | Add the exact secret name and reboot |
+| `401 UNAUTHENTICATED` | Invalid provider credential | Replace/rotate the key |
+| `403 PERMISSION_DENIED` | Project/model access issue | Verify provider project and model access |
+| `404 NOT_FOUND` | Selected model unavailable | Select a supported configured model |
+| `429 RESOURCE_EXHAUSTED` | Provider quota/rate limit reached | Wait for quota reset or change approved plan |
 
-## Upgrade history
+## Production gates for product integration
 
-The original repository was Streamlit's GPT-3.5 chatbot template. It has been upgraded with ZEMA branding, server-side credential handling, Gemini integration, multilingual support, specialized assistant modes, conversation history, transcript download, and actionable API diagnostics.
+1. Authenticated user identity from the host ZEMA product
+2. Permission-aware API/tool calls
+3. Tenant isolation
+4. Sensitive-data/provider review
+5. Audit logging
+6. Safe tool confirmation policies
+7. Rate limiting and failure handling
+8. Monitoring and rollback
+
+## Master documentation
+
+ZEMA-wide product inventory, DEV/PROD architecture, deployment, security boundaries, and release standards are maintained in `ZemaEthio/zema-ai-corporate/docs`.
