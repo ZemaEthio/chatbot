@@ -83,6 +83,6 @@ Deploy `streamlit_app.py` from this repository. Store `GEMINI_API_KEY` under the
 7. Rate limiting and failure handling
 8. Monitoring and rollback
 
-## Master documentation
+## Engineering documentation
 
-ZEMA-wide product inventory, DEV/PROD architecture, deployment, security boundaries, and release standards are maintained in `ZemaEthio/zema-ai-corporate/docs`.
+ZEMA-wide product, environment, architecture, security, deployment, and release standards are maintained in **`ZemaEthio/zema-platform-docs`**.
